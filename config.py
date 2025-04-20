@@ -10,4 +10,9 @@ KINDS = ["2", "3"]            # 2: 獨立套房, 3: 分租套房
 NEW_WITHIN_HOURS = 14          # 幾小時內上架的物件
 
 SEND_LINE_MESSAGE = True
-RANDOM_DELAY = False
+RANDOM_DELAY = True
+
+GET_RECOMMENDS = True
+GET_NORMAL = True
+
+TEST_MODE = False  # Set to True for testing, False for production
