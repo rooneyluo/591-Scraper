@@ -32,7 +32,7 @@ def log_and_run():
 
 # Run at specific hours
 # 7, 10, 12, 15, 18, 20, 22, 24
-@scheduler.scheduled_job('cron', hour='7, 10, 12, 15, 18, 20, 22, 24', minute=0)
+@scheduler.scheduled_job('cron', hour='0, 7, 10, 12, 15, 18, 20, 22', minute=0)
 def scheduled_job():
     log_and_run()
 
