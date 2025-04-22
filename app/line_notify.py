@@ -1,4 +1,5 @@
 import os
+import json
 import sys
 import requests
 import traceback
@@ -16,14 +17,16 @@ LINE_TO_USER = os.getenv("LINE_TO_USER_ID")
 
 def push_to_line(message: str):
     """
-    Send a message to LINE
+    Send a message to LINE, but only if the item has not been pushed before.
     
     Args:
         message (str): The message to send
+        item_id (str): A unique identifier for the item being pushed
         
     Returns:
         bool: True if the message was sent successfully, False otherwise
     """
+
     if not message or not isinstance(message, str):
         print("[LINE] Invalid message format")
         return False

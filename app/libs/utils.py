@@ -6,6 +6,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
 from bs4 import BeautifulSoup
 import time
+import os
+import json
+
+PUSHED_ITEMS_FILE = "pushed_items.json"
 
 def get_driver():
     """
@@ -101,3 +105,37 @@ def get_page_content(driver, url, max_retries=3):
     
     print(f"[Error] Failed to fetch {url} after {max_retries} attempts")
     return None
+
+def concat_items(items: dict):
+    if not items or not isinstance(items, dict):
+        print("[Error] Invalid items provided for concatenation")
+        return ""
+    
+    pushed_items = load_pushed_items()
+    items_keys = list(items.keys())
+
+    new_items_keys = list(set(items_keys) - set(pushed_items))
+
+    message = ""
+    for item_id in new_items_keys:
+        message += items[item_id] + "\n"
+    
+    save_pushed_item(new_items_keys)
+    return message
+
+
+def load_pushed_items():
+    """Load the list of pushed items from the JSON file"""
+    if os.path.exists(PUSHED_ITEMS_FILE):
+        with open(PUSHED_ITEMS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)["pushed_ids"]
+    else:
+        return []
+
+def save_pushed_item(items_id: list):
+    """Save a new pushed item ID to the JSON file"""
+    pushed_items = load_pushed_items()
+    pushed_items.extend(items_id)
+    with open(PUSHED_ITEMS_FILE, "w", encoding="utf-8") as f:
+        json.dump({"pushed_ids": pushed_items}, f, ensure_ascii=False, indent=4)
+    print(f"[Info] Pushed items saved: {items_id}")

@@ -41,6 +41,8 @@ def run_crawler():
     try:
         driver = get_driver()
         urls = generate_urls()
+        items = {}
+        
         print(f"[Crawler] Start crawling {len(urls)} URLs")
 
         for url in urls:
@@ -48,38 +50,37 @@ def run_crawler():
                 soup = get_page_content(driver, url)
                 if soup:
                     if GET_RECOMMENDS:
-                        get_recommends(soup)
+                        items.update(get_recommends(soup))
                     if GET_NORMAL:
-                        get_normal(soup, url, driver)
+                        items.update(get_normal(soup, url, driver))
                 else:
                     print(f"[Error] Failed to get content for URL: {url}")
             except Exception as e:
                 error_msg = f"[Error] Failed to process URL {url}: {str(e)}"
                 print(error_msg)
-                push_to_line(f"爬蟲錯誤: {error_msg}")
                 traceback.print_exc()
                 continue  # Continue with next URL even if this one fails
 
         driver.quit()
         print("[Crawler] Done.")
+        return items
     except Exception as e:
         error_msg = f"[Critical Error] Crawler failed: {str(e)}"
         print(error_msg)
-        push_to_line(f"爬蟲嚴重錯誤: {error_msg}")
         traceback.print_exc()
-        sys.exit(1)  # Exit with error code
+        return None
 
 def get_recommends(soup):
     if not soup:
         print("[Error] Empty soup object in get_recommends")
-        return
+        return None
         
     listings = soup.select("div.recommend-ware")
     if not listings:
         print("[Info] No recommended listings found")
-        return
+        return None
         
-    data = []
+    data = {}
     for item in listings:
         try:
             title_elem = item.select_one("a.title")
@@ -94,31 +95,35 @@ def get_recommends(soup):
             price = price_elem.text.strip() + "元"
             area = area_elem.text.strip()
             link = title_elem['href'] if 'href' in title_elem.attrs else None
-            
+            id = link.split("/")[-1] if link else None
+
             if not link:
                 print("[Warning] Missing link in listing")
                 continue
-
+            
+            print("ID:", id)
             print("Title:", title)
             print("Price:", price)
             print("Area:", area)
             print("Link:", link)
             print("-" * 20)
 
-            data.append(f"{title}\n租金：{price}\n坪數：{area}\n{link}\n")
+            data[id] = f"ID: {id}\n{title}\n租金：{price}\n坪數：{area}\n{link}\n"
         except Exception as e:
             print(f"[Error] Failed to parse listing: {str(e)}")
             traceback.print_exc()
             continue
-    
+
     if data:
         try:
-            push_to_line("推薦物件：\n" + "\n".join(data))
+            return data
         except Exception as e:
-            print(f"[Error] Failed to send Line notification: {str(e)}")
+            print(f"[Error] Failed to return data: {str(e)}")
             traceback.print_exc()
+            return None
     else:
-        print("[Info] No valid recommended listings to send")
+        print("[Info] No valid recommended listings found")
+        return None
 
 def get_normal(soup, url, driver):
     if not soup:
@@ -126,7 +131,7 @@ def get_normal(soup, url, driver):
         return
         
     page = 1
-    data = []
+    data = {}
     max_pages = 5  # Safety limit to prevent infinite loops
     
     try:
@@ -134,7 +139,7 @@ def get_normal(soup, url, driver):
             print(f'Getting page {page}')
             items_data = get_normal_items(soup)
             if items_data:
-                data.append(items_data)
+                data.update(items_data)
                 print(f'Successfully crawled page: {page}')
             else:
                 print(f'No items found on page {page}')
@@ -157,12 +162,14 @@ def get_normal(soup, url, driver):
     
     if data:
         try:
-            push_to_line("一般物件：\n" + "\n".join(data))
+            return data
         except Exception as e:
             print(f"[Error] Failed to send Line notification: {str(e)}")
             traceback.print_exc()
+            return None
     else:
         print("[Info] No valid normal listings to send")
+        return None
 
 def get_normal_items(soup):
     if not soup:
@@ -174,7 +181,7 @@ def get_normal_items(soup):
         print("[Info] No normal listings found")
         return None
         
-    data = []
+    data = {}
     for item in listings:
         try:
             # Title and Link
@@ -200,13 +207,15 @@ def get_normal_items(soup):
                 
             if not is_new_listing(time):
                 continue
-
+            
+            id = link.split("/")[-1] if link else None
+            print("ID:", id)
             print("Title:", title)
             print("Link:", link)
             print("Time:", time)
             print("-" * 20)
 
-            data.append(f"{title}\n{link}\n")
+            data[id] = f"ID: {id}\n{title}\n{link}\n"
         except IndexError as e:
             print(f"[Error] Index error while parsing listing: {str(e)}")
             continue
@@ -216,6 +225,6 @@ def get_normal_items(soup):
             continue
 
     if data:
-        return '\n'.join(data)
+        return data
     else:
         return None
