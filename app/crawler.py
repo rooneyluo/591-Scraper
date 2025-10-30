@@ -4,28 +4,57 @@ import sys
 import traceback
 from dotenv import load_dotenv
 
-from config import CITY_DISTRICTS, RENT_RANGE, MIN_PING, MAX_PING, KINDS, NEW_WITHIN_HOURS, GET_RECOMMENDS, GET_NORMAL
+from config import CITY_DISTRICTS, RENT_RANGE, MIN_PING, MAX_PING, KINDS, NEW_WITHIN_HOURS, GET_RECOMMENDS, GET_NORMAL, NOT_COVER, ALL_SEX, BOY_ONLY, SEARCH_MODE, METRO_STATIONS
 from app.line_notify import push_to_line
 from app.libs.utils import get_driver, get_page_content
 
 load_dotenv()
 
 def generate_urls():
+    """
+    Generate a list of URLs to scrape based on the configuration.
+    """
     urls = []
-    base = "https://rent.591.com.tw/list?region={region}&section={section}&kind={kind}&price={min_rent}$_{max_rent}$&acreage={min_area}$_{max_area}$&other=newPost&sort=posttime_desc"
-    for region, sections in CITY_DISTRICTS.items():
-        section = ",".join(sections)
+
+    # 根據模式決定使用的基底設定
+    config = {
+        "metro": {
+            "base": "https://rent.591.com.tw/list?metro={main}&station={sub}&kind={kind}",
+            "data": METRO_STATIONS,
+            "key_name": "metro"
+        },
+        "district": {
+            "base": "https://rent.591.com.tw/list?region={main}&section={sub}&kind={kind}",
+            "data": CITY_DISTRICTS,
+            "key_name": "region"
+        }
+    }
+
+    # 根據模式取出設定
+    mode_conf = config.get(SEARCH_MODE)
+    if not mode_conf:
+        raise ValueError(f"Invalid SEARCH_MODE: {SEARCH_MODE}")
+
+    # 預先組好共通查詢參數
+    common_params = f"&price={RENT_RANGE[0]}$_{RENT_RANGE[1]}$&acreage={MIN_PING}$_{MAX_PING}$&other=cook,newPost&sort=posttime_desc&option=washer"
+
+    # notice 組合
+    notice_flags = [
+        flag for flag, enabled in [
+            ("not_cover", NOT_COVER),
+            ("all_sex", ALL_SEX),
+            ("boy", BOY_ONLY)
+        ] if enabled
+    ]
+    notice_param = f"&notice={','.join(notice_flags)}" if notice_flags else ""
+
+    # 生成 URL
+    for main, subs in mode_conf["data"].items():
+        sub_param = ",".join(subs)
         for kind in KINDS:
-            url = base.format(
-                kind=kind,
-                region=region,
-                section=section,
-                min_rent=RENT_RANGE[0],
-                max_rent=RENT_RANGE[1],
-                min_area=MIN_PING,
-                max_area=MAX_PING
-            )
-            urls.append(url)
+            url = mode_conf["base"].format(main=main, sub=sub_param, kind=kind)
+            urls.append(url + common_params + notice_param)
+
     return urls
 
 def is_new_listing(time_text):
@@ -50,9 +79,13 @@ def run_crawler():
                 soup = get_page_content(driver, url)
                 if soup:
                     if GET_RECOMMENDS:
-                        items.update(get_recommends(soup))
+                        recommends = get_recommends(soup)
+                        if recommends:
+                            items.update(recommends)
                     if GET_NORMAL:
-                        items.update(get_normal(soup, url, driver))
+                        normal_items = get_normal(soup, url, driver)
+                        if normal_items:
+                            items.update(normal_items)
                 else:
                     print(f"[Error] Failed to get content for URL: {url}")
             except Exception as e:

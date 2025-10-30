@@ -10,10 +10,36 @@ from dotenv import load_dotenv
 load_dotenv()
 
 LINE_API = "https://api.line.me/v2/bot/message/push"
-LINE_TO_GROUP = os.getenv("LINE_TO_GROUP_ID")
+LINE_TO_GROUP = os.getenv("LINE_TO_GROUP_ID_2")
 
-LINE_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_TO_USER = os.getenv("LINE_TO_USER_ID")
+LINE_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN_2")
+LINE_TO_USER = os.getenv("LINE_TO_USER_ID_2")
+
+def split_message_by_entry(message: str, max_length: int = 4000) -> list[str]:
+    """
+    將訊息依照「一筆一筆物件」進行分段，避免切到中間。
+    每筆以兩個換行 \n\n 分隔。
+    """
+    entries = message.strip().split("\n\n")  # 每筆資料間用兩個換行分隔
+    chunks = []
+    current_chunk = ""
+
+    for entry in entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+
+        # 預估加入這筆後是否超過最大長度
+        if len(current_chunk) + len(entry) + 2 > max_length:  # +2 為 \n\n
+            chunks.append(current_chunk.strip())
+            current_chunk = entry + "\n\n"
+        else:
+            current_chunk += entry + "\n\n"
+
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+
+    return chunks
 
 def push_to_line(message: str):
     """
@@ -31,11 +57,6 @@ def push_to_line(message: str):
         print("[LINE] Invalid message format")
         return False
         
-    # Truncate message if it's too long (LINE has a limit of 5000 characters)
-    if len(message) > 5000:
-        message = message[:4997] + "..."
-        print("[LINE] Message truncated due to length limit")
-    
     if not SEND_LINE_MESSAGE:
         print("[LINE] Debug mode, not sending message.")
         return True
@@ -46,26 +67,32 @@ def push_to_line(message: str):
         return False
         
     # Determine recipient - prefer group if available, fallback to user
-    recipient = LINE_TO_GROUP
+    recipient = LINE_TO_GROUP or LINE_TO_USER
     if not recipient:
-        if not LINE_TO_USER:
-            print("[LINE] Missing both LINE_TO_GROUP_ID and LINE_TO_USER_ID in .env")
-            return False
-        recipient = LINE_TO_USER
-        print("[LINE] Using user ID as recipient")
+        print("[LINE] Missing both LINE_TO_GROUP_ID and LINE_TO_USER_ID in .env")
+        return False
 
     headers = {
         "Authorization": f"Bearer {LINE_TOKEN}",
         "Content-Type": "application/json"
     }
 
+    MAX_LEN = 4000
+    chunks = chunks = split_message_by_entry(message, max_length=MAX_LEN) #[message[i:i + MAX_LEN] for i in range(0, len(message), MAX_LEN)]
+
+    if len(chunks) > 1:
+        print(f"[LINE] Message too long, splitting into {len(chunks)} parts")
+    else:
+        print("[LINE] Sending single message part")
+
     payload = {
         "to": recipient,
         "messages": [
             {
                 "type": "text",
-                "text": message
+                "text": chunk
             }
+            for chunk in chunks
         ]
     }
 
