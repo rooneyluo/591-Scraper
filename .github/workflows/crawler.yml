@@ -1,0 +1,47 @@
+name: run-crawler
+
+on:
+  schedule:
+    - cron: '0 23,2,4,7,10,12,14,16 * * *'  # 台灣時間 7,10,12,15,18,20,22,24
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允許 commit 回 repo
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync environment with uv
+        run: uv sync
+
+      - name: Run crawler
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN_2: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}
+          LINE_TO_USER_ID_2: ${{ secrets.LINE_TO_USER_ID_2 }}
+          LINE_TO_GROUP_ID_2: ${{ secrets.LINE_TO_GROUP_ID_2 }}
+        run: uv run python main_github_action.py
+
+      - name: Commit and push updated pushed_items.json
+        run: |
+          if [ -f pushed_items.json ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add pushed_items.json
+            git diff --cached --quiet || git commit -m "Update pushed_items.json [skip ci]"
+            git push
+          else
+            echo "No pushed_items.json found, skipping commit."
+          fi

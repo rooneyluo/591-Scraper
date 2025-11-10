@@ -1,6 +1,5 @@
 import random
 import time
-import sys
 from apscheduler.schedulers.blocking import BlockingScheduler
 from dotenv import load_dotenv
 from app.crawler import run_crawler
