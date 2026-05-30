@@ -21,11 +21,19 @@ def get_driver():
     try:
         options = Options()
         options.add_argument('--headless')
+        options.add_argument('--headless=new')
         options.add_argument('--disable-notifications')
         options.add_argument('--disable-infobars')
         options.add_argument('--disable-extensions')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--lang=zh-TW')
+        options.add_argument(
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/125.0.0.0 Safari/537.36'
+        )
         options.add_experimental_option("prefs", {
             "profile.managed_default_content_settings.javascript": 2
         })
@@ -74,10 +82,6 @@ def get_page_content(driver, url, max_retries=3):
             # Wait a bit for any dynamic content to load
             time.sleep(2)
             
-            # Check if page loaded successfully
-            if "Error" in driver.title or "404" in driver.title:
-                print(f"[Warning] Page may have error: {driver.title}")
-            
             html_content = driver.page_source
             if not html_content or len(html_content) < 100:
                 print("[Warning] Page content seems too short, might be incomplete")
@@ -86,9 +90,24 @@ def get_page_content(driver, url, max_retries=3):
                 continue
 
             soup = BeautifulSoup(html_content, 'html.parser')
+            title = driver.title or ""
+            title_lower = title.lower()
+            error_indicators = [
+                "error",
+                "404",
+                "request could not be satisfied",
+                "access denied",
+                "forbidden",
+            ]
+            if any(indicator in title_lower for indicator in error_indicators):
+                print(f"[Warning] Error page detected: title={title!r}, html_length={len(html_content)}")
+                retry_count += 1
+                time.sleep(5 * retry_count)
+                continue
+
             print(
                 "[Debug] Page diagnostics: "
-                f"title={driver.title!r}, "
+                f"title={title!r}, "
                 f"html_length={len(html_content)}, "
                 f"items={len(soup.select('.item'))}, "
                 f"recommended={len(soup.select('div.recommend-ware'))}, "

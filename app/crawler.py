@@ -69,10 +69,14 @@ def is_new_listing(time_text):
 def run_crawler():
     try:
         driver = get_driver()
+        if not driver:
+            return None
+
         urls = generate_urls()
 
         items = {}
-        
+        failed_urls = []
+
         print(f"[Crawler] Start crawling {len(urls)} URLs")
 
         for url in urls:
@@ -95,13 +99,22 @@ def run_crawler():
                             print("[Debug] No normal items added")
                 else:
                     print(f"[Error] Failed to get content for URL: {url}")
+                    failed_urls.append(url)
             except Exception as e:
                 error_msg = f"[Error] Failed to process URL {url}: {str(e)}"
                 print(error_msg)
                 traceback.print_exc()
+                failed_urls.append(url)
                 continue  # Continue with next URL even if this one fails
 
         driver.quit()
+        if failed_urls and len(failed_urls) == len(urls) and not items:
+            print(f"[Error] All URLs failed. failed_urls={failed_urls}")
+            return None
+
+        if failed_urls:
+            print(f"[Warning] Some URLs failed: {len(failed_urls)}/{len(urls)}")
+
         print(f"[Crawler] Done. Total unique items: {len(items)}")
         return items
     except Exception as e:

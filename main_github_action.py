@@ -29,7 +29,25 @@ def main():
 
     items = run_crawler()
     print(f"[Debug] run_crawler returned type={type(items)}, count={len(items) if isinstance(items, dict) else 'N/A'}")
+    if items is None:
+        error_message = start_message + "\n[錯誤] 爬蟲抓取失敗，可能被 591/CDN 擋下或頁面載入失敗，請查看 GitHub Actions log。\n" + end_message
+        push_to_line(error_message)
+        print("[Crawler] Finished with error.")
+        return
+
+    if not items:
+        push_to_line(start_message + "\n[資訊] 本次沒有找到符合條件的租屋物件。\n" + end_message)
+        print("[Crawler] No items found; LINE message sent.")
+        print("[Crawler] Finished.")
+        return
+
     message = concat_items(items)
+    if not message:
+        push_to_line(start_message + "\n[資訊] 本次沒有新的租屋物件，符合條件的物件都已推播過。\n" + end_message)
+        print("[Crawler] No new items after filtering pushed IDs; LINE message sent.")
+        print("[Crawler] Finished.")
+        return
+
     push_to_line(start_message + "\n" + message + "\n" + end_message)
 
     print("[Crawler] Finished.")
