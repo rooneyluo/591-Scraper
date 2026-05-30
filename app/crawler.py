@@ -4,7 +4,7 @@ import sys
 import traceback
 from dotenv import load_dotenv
 
-from config import CITY_DISTRICTS, RENT_RANGE, MIN_PING, MAX_PING, KINDS, NEW_WITHIN_HOURS, GET_RECOMMENDS, GET_NORMAL, NOT_COVER, ALL_SEX, BOY_ONLY, SEARCH_MODE, METRO_STATIONS
+from config import CITY_DISTRICTS, RENT_RANGE, MIN_PING, MAX_PING, KINDS, NEW_WITHIN_HOURS, GET_RECOMMENDS, GET_NORMAL, NOT_COVER, ALL_SEX, BOY_ONLY, SEARCH_MODE, METRO_STATIONS, OTHERS, OPTIONS
 from app.line_notify import push_to_line
 from app.libs.utils import get_driver, get_page_content
 
@@ -36,7 +36,7 @@ def generate_urls():
         raise ValueError(f"Invalid SEARCH_MODE: {SEARCH_MODE}")
 
     # 預先組好共通查詢參數
-    common_params = f"&price={RENT_RANGE[0]}$_{RENT_RANGE[1]}$&acreage={MIN_PING}$_{MAX_PING}$&other=cook,newPost&sort=posttime_desc&option=washer"
+    common_params = f"&price={RENT_RANGE[0]}$_{RENT_RANGE[1]}$&acreage={MIN_PING}$_{MAX_PING}$&other={OTHERS}&option={OPTIONS}&sort=posttime_desc"
 
     # notice 組合
     notice_flags = [
@@ -70,6 +70,7 @@ def run_crawler():
     try:
         driver = get_driver()
         urls = generate_urls()
+
         items = {}
         
         print(f"[Crawler] Start crawling {len(urls)} URLs")

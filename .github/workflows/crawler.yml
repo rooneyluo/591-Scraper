@@ -1,4 +1,4 @@
-name: run-crawler
+﻿name: run-crawler
 
 on:
   schedule:
@@ -9,15 +9,15 @@ jobs:
   crawl:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允許 commit 回 repo
+      contents: write  # allow commit to repo
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
