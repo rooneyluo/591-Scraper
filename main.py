@@ -38,6 +38,7 @@ def log_and_run():
     end_message = "-----------------------\n爬蟲結束，請查看租屋資訊！"
 
     items = run_crawler()
+    print(f"[Debug] run_crawler returned type={type(items)}, count={len(items) if isinstance(items, dict) else 'N/A'}")
     message = concat_items(items)
     push_to_line(start_message + "\n" + message + "\n" + end_message)
 

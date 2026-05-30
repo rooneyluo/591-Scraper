@@ -84,8 +84,17 @@ def get_page_content(driver, url, max_retries=3):
                 retry_count += 1
                 time.sleep(2)
                 continue
-                
-            return BeautifulSoup(html_content, 'html.parser')
+
+            soup = BeautifulSoup(html_content, 'html.parser')
+            print(
+                "[Debug] Page diagnostics: "
+                f"title={driver.title!r}, "
+                f"html_length={len(html_content)}, "
+                f"items={len(soup.select('.item'))}, "
+                f"recommended={len(soup.select('div.recommend-ware'))}, "
+                f"empty={soup.select_one('.empty') is not None}"
+            )
+            return soup
             
         except TimeoutException:
             print(f"[Error] Timeout while loading {url}")
@@ -108,7 +117,7 @@ def get_page_content(driver, url, max_retries=3):
 
 def concat_items(items: dict):
     if not items or not isinstance(items, dict):
-        print("[Error] Invalid items provided for concatenation")
+        print(f"[Error] Invalid items provided for concatenation: type={type(items)}, value={items}")
         return ""
     
     pushed_items = load_pushed_items()

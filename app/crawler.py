@@ -83,10 +83,16 @@ def run_crawler():
                         recommends = get_recommends(soup)
                         if recommends:
                             items.update(recommends)
+                            print(f"[Debug] Added recommended items: {len(recommends)}; total items: {len(items)}")
+                        else:
+                            print("[Debug] No recommended items added")
                     if GET_NORMAL:
                         normal_items = get_normal(soup, url, driver)
                         if normal_items:
                             items.update(normal_items)
+                            print(f"[Debug] Added normal items: {len(normal_items)}; total items: {len(items)}")
+                        else:
+                            print("[Debug] No normal items added")
                 else:
                     print(f"[Error] Failed to get content for URL: {url}")
             except Exception as e:
@@ -96,7 +102,7 @@ def run_crawler():
                 continue  # Continue with next URL even if this one fails
 
         driver.quit()
-        print("[Crawler] Done.")
+        print(f"[Crawler] Done. Total unique items: {len(items)}")
         return items
     except Exception as e:
         error_msg = f"[Critical Error] Crawler failed: {str(e)}"
