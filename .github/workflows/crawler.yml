@@ -27,6 +27,13 @@ jobs:
       - name: Sync environment with uv
         run: uv sync
 
+      - name: Print schedule diagnostics
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "event.schedule=${{ github.event.schedule }}"
+          echo "utc_now=$(date -u '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "taipei_now=$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %Z')"
+
       - name: Run crawler
         env:
           LINE_CHANNEL_ACCESS_TOKEN_2: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN_2 }}

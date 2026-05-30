@@ -101,6 +101,10 @@ def get_page_content(driver, url, max_retries=3):
             ]
             if any(indicator in title_lower for indicator in error_indicators):
                 print(f"[Warning] Error page detected: title={title!r}, html_length={len(html_content)}")
+                print(f"[Debug] Error page current_url={driver.current_url!r}")
+                print("[Debug] Error page html begin")
+                print(html_content)
+                print("[Debug] Error page html end")
                 retry_count += 1
                 time.sleep(5 * retry_count)
                 continue
